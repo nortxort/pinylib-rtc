@@ -29,7 +29,7 @@ class User:
         self.is_owner = kwargs.get('owner', False)
         self.is_broadcasting = False
         #
-        self.user_level = 2
+        self.user_level = 5
         self.join_time = time.time()
         self.tinychat_id = None
         self.last_login = None
