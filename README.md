@@ -15,7 +15,7 @@ pinylib-rtc was developed using [python 2.7.10](https://www.python.org/downloads
 
 ### Requirements
 
-pinylib requires 4 libraries that are not part of the standard python library, these being:
+pinylib-rtc requires 4 libraries that are not part of the standard python library, these being:
 
 * [websocket-client](https://github.com/websocket-client/websocket-client)
 * [requests](https://github.com/kennethreitz/requests "requests")
