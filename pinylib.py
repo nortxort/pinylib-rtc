@@ -17,7 +17,7 @@ import apis.tinychat
 from page import acc
 from util import file_handler, string_util
 
-__version__ = '1.0.0'
+__version__ = '1.0.2'
 
 CONFIG = config
 init(autoreset=True)
@@ -121,11 +121,9 @@ class TinychatRTCClient(object):
             'Sec-WebSocket-Extensions': 'permessage-deflate'
         }
 
-        # It is rather annoying the way logging works in websocket.
-        # Or maybe i have misunderstood how it works. How do we only log to file?
+        # Comment out next lines to not
+        # have debug info from websocket show in console.
         if config.DEBUG_MODE:
-            # could comment out next line to not
-            # have debug info from websocket show in console.
             websocket.enableTrace(True)
 
         self._ws = websocket.create_connection(
@@ -190,6 +188,9 @@ class TinychatRTCClient(object):
                 elif event == 'joined':
                     self.on_joined(json_data['self'])
                     self.on_room_info(json_data['room'])
+
+                elif event == 'room_settings':
+                    self.on_room_settings(json_data['room'])
 
                 elif event == 'userlist':
                     for _user in json_data['users']:
@@ -290,6 +291,10 @@ class TinychatRTCClient(object):
 
         # Not sure if this is the right place for this.
         if self.is_client_mod:
+            # when reconnect() have been implemented,
+            # the ban list should be cleared before requesting
+            # a new ban list to make sure the ban list is updated.
+            # self.users.clear_banlist()
             self.send_banlist_msg()
 
     def on_room_info(self, room_info):
@@ -303,6 +308,21 @@ class TinychatRTCClient(object):
             self.console_write(COLOR['white'], '## Room Information ##')
             for k in room_info:
                 self.console_write(COLOR['white'], '%s: %s' % (k, room_info[k]))
+
+    def on_room_settings(self, room_settings):
+        """
+        Received when a change has been made to the room settings(privacy page).
+
+        Not really sure what role this plays, but it happens when 
+        a change has been made to the privacy page.
+
+        :param room_settings: The room room settings.
+        :type room_settings: dict
+        """
+        if config.DEBUG_MODE:
+            self.console_write(COLOR['white'], '## Room Settings Change ##')
+            for k in room_settings:
+                self.console_write(COLOR['white'], '%s: %s' % (k, room_settings[k]))
 
     def on_userlist(self, user_info):
         """
@@ -411,12 +431,18 @@ class TinychatRTCClient(object):
             self.console_write(COLOR['green'], '%s was unbanned.' % unbanned.nick)
 
     def on_banlist(self, banlist_info):
+        """
+        Received when a request for the ban list has been made.
+
+        :param banlist_info: The ban list information such as whether it was a success or not.
+        :type banlist_info: dict
+        """
         if not banlist_info['success']:
             self.console_write(COLOR['bright_red'], banlist_info['reason'])
         else:
             if len(banlist_info['items']) > 0:
-                for i, item in enumerate(banlist_info['items']):
-                    self.users.add_banned_user(item[i])
+                for item in banlist_info['items']:
+                    self.users.add_banned_user(item)
             else:
                 self.console_write(COLOR['green'], 'The banlist is empty.')
 
@@ -509,6 +535,8 @@ class TinychatRTCClient(object):
         """
         self.console_write(COLOR['white'], msg)
         if 'banned' in msg and self.is_client_mod:
+            # clear the ban list to make sure the ban list is updated.
+            self.users.clear_banlist()
             self.send_banlist_msg()
 
     def on_yut_playlist(self, playlist_data):  # TODO: Needs more work.
@@ -627,7 +655,12 @@ class TinychatRTCClient(object):
         self.send(payload)
 
     def send_chat_msg(self, msg):
-        """ Send a chat message. """
+        """
+        Send a chat message to the room.
+        
+        :param msg: The message to send.
+        :type msg: str
+        """
         payload = {
             'tc': 'msg',
             'req': self._req,
@@ -636,7 +669,14 @@ class TinychatRTCClient(object):
         self.send(payload)
 
     def send_private_msg(self, uid, msg):
-        """ Send a private message. """
+        """
+        Send a private message to a user.
+        
+        :param uid: The Id (handle) of the user to send the message to.
+        :type uid: int
+        :param msg: The private message to send.
+        :type msg: str
+        """
         payload = {
             'tc': 'pvtmsg',
             'req': self._req,
@@ -646,7 +686,12 @@ class TinychatRTCClient(object):
         self.send(payload)
 
     def send_kick_msg(self, uid):
-        """ Send a kick message. """
+        """
+        Send a kick message to kick a user out of the room.
+        
+        :param uid: The ID (handle) of the user to kick.
+        :type uid: int
+        """
         payload = {
             'tc': 'kick',
             'req': self._req,
@@ -655,7 +700,12 @@ class TinychatRTCClient(object):
         self.send(payload)
 
     def send_ban_msg(self, uid):
-        """ Send a ban message. """
+        """
+        Send a ban message to ban a user from the room.
+        
+        :param uid: The ID (handle) of the user to ban.
+        :type uid: int
+        """
         payload = {
             'tc': 'ban',
             'req': self._req,
@@ -664,7 +714,12 @@ class TinychatRTCClient(object):
         self.send(payload)
 
     def send_unban_msg(self, ban_id):
-        """ Send a un-ban message. """
+        """
+        Send a un-ban message to un-ban a banned user.
+        
+        :param ban_id: The ban ID of the user to un-ban.
+        :type ban_id: int
+        """
         payload = {
             'tc': 'unban',
             'req': self._req,

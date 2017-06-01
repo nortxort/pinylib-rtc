@@ -261,6 +261,10 @@ class Users:
             return banned_user
         return None
 
+    def clear_banlist(self):
+        """ Clear the ban list. """
+        self._banned_users.clear()
+
     def search_banlist(self, ban_id):
         """
         Search the banlist dictionary by ban ID.
