@@ -17,7 +17,7 @@ import apis.tinychat
 from page import acc
 from util import file_handler, string_util
 
-__version__ = '1.0.2'
+__version__ = '1.0.3'
 
 CONFIG = config
 init(autoreset=True)
@@ -121,7 +121,7 @@ class TinychatRTCClient(object):
             'Sec-WebSocket-Extensions': 'permessage-deflate'
         }
 
-        # Comment out next lines to not
+        # Comment out next 2 lines to not
         # have debug info from websocket show in console.
         if config.DEBUG_MODE:
             websocket.enableTrace(True)
@@ -139,30 +139,20 @@ class TinychatRTCClient(object):
                 self.__callback()
 
     def disconnect(self):
-        """ 
-        Disconnect from the server.
-        
-        This is a bit troublesome, as it will throw an error in the __callback 
-        not really sure why. It might be that i am simply closing the connection 
-        in a wrong way. I did try different approaches without success.
-        """
+        """ Disconnect from the server. """
         self.is_connected = False
-        self._ws.close(status=1001, reason='GoingAway')
-        self._ws.shutdown()
+        self._ws.send_close(status=1001, reason='GoingAway')
+        self._ws.abort()  # not sure if this is actually needed.
         self._req = 1
         self._ws = None
         self.client_id = 0
         self.is_client_mod = False
         self.is_client_owner = False
         self.users.clear()
+        self.users.clear_banlist()
 
     def reconnect(self):
-        """ 
-        Reconnect to the server. 
-        
-        Again, this is a bit troublesome. It does reconnect, 
-        but for some reason, writing does nothing on the reconnected connection.
-        """
+        """ Reconnect to the server. """
         if self.is_connected:
             self.disconnect()
         self.connect()
@@ -170,87 +160,98 @@ class TinychatRTCClient(object):
     def __callback(self):
         """ The main loop reading event messages from the server. """
         log.info('starting callback, is_connected: %s' % self.is_connected)
-        while self.is_connected:
+        fails = 0
 
+        while self.is_connected:
             try:
                 data = self._ws.next()
-                log.debug('DATA: %s' % data)
-                json_data = json.loads(data)
-
-                event = json_data['tc']
-
-                if event == 'ping':
-                    self.on_ping()
-
-                elif event == 'closed':
-                    self.on_closed(json_data['error'])
-
-                elif event == 'joined':
-                    self.on_joined(json_data['self'])
-                    self.on_room_info(json_data['room'])
-
-                elif event == 'room_settings':
-                    self.on_room_settings(json_data['room'])
-
-                elif event == 'userlist':
-                    for _user in json_data['users']:
-                        self.on_userlist(_user)
-
-                elif event == 'join':
-                    self.on_join(json_data)
-
-                elif event == 'nick':
-                    self.on_nick(json_data['handle'], json_data['nick'])
-
-                elif event == 'quit':
-                    self.on_quit(json_data['handle'])
-
-                elif event == 'ban':
-                    self.on_ban(json_data)
-
-                elif event == 'unban':
-                    self.on_unban(json_data)
-
-                elif event == 'banlist':
-                    self.on_banlist(json_data)
-
-                elif event == 'msg':
-                    self.on_msg(json_data['handle'], json_data['text'])
-
-                elif event == 'pvtmsg':
-                    self.on_pvtmsg(json_data['handle'], json_data['text'])
-
-                elif event == 'publish':
-                    self.on_publish(json_data['handle'])
-
-                elif event == 'unpublish':
-                    self.on_unpublish(json_data['handle'])
-
-                elif event == 'sysmsg':
-                    self.on_sysmsg(json_data['text'])
-
-                elif event == 'yut_playlist':
-                    self.on_yut_playlist(json_data)
-
-                elif event == 'yut_play':
-                    self.on_yut_play(json_data)
-
-                elif event == 'yut_pause':
-                    self.on_yut_pause(json_data)
-
-                elif event == 'yut_stop':
-                    self.on_yut_stop(json_data)
-
-                else:
-                    self.console_write(COLOR['bright_red'], 'Unknown command: %s %s' % (event, json_data))
-
-                if config.DEBUG_MODE:
-                    self.console_write(COLOR['white'], data)
-
             except Exception as e:
-                log.error('callback error: %s' % e, exc_info=True)
-                if config.DEBUG_MODE:
-                    self.console_write(COLOR['bright_red'], '%s' % e)
+                log.error('data read error %s: %s' % (fails, e), exc_info=True)
+                fails += 1
+                if fails == 2:
+                    if CONFIG.DEBUG_MODE:
+                        traceback.print_exc()
+                    self.reconnect()
+                    break
+            else:
+                fails = 0
+
+                if data:
+                    log.debug('DATA: %s' % data)
+                    json_data = json.loads(data)
+
+                    event = json_data['tc']
+
+                    if event == 'ping':
+                        self.on_ping()
+
+                    elif event == 'closed':
+                        self.on_closed(json_data['error'])
+
+                    elif event == 'joined':
+                        self.on_joined(json_data['self'])
+                        self.on_room_info(json_data['room'])
+
+                    elif event == 'room_settings':
+                        self.on_room_settings(json_data['room'])
+
+                    elif event == 'userlist':
+                        for _user in json_data['users']:
+                            self.on_userlist(_user)
+
+                    elif event == 'join':
+                        self.on_join(json_data)
+
+                    elif event == 'nick':
+                        self.on_nick(json_data['handle'], json_data['nick'])
+
+                    elif event == 'quit':
+                        self.on_quit(json_data['handle'])
+
+                    elif event == 'ban':
+                        self.on_ban(json_data)
+
+                    elif event == 'unban':
+                        self.on_unban(json_data)
+
+                    elif event == 'banlist':
+                        self.on_banlist(json_data)
+
+                    elif event == 'msg':
+                        self.on_msg(json_data['handle'], json_data['text'])
+
+                    elif event == 'pvtmsg':
+                        self.on_pvtmsg(json_data['handle'], json_data['text'])
+
+                    elif event == 'publish':
+                        self.on_publish(json_data['handle'])
+
+                    elif event == 'unpublish':
+                        self.on_unpublish(json_data['handle'])
+
+                    elif event == 'sysmsg':
+                        self.on_sysmsg(json_data['text'])
+
+                    elif event == 'password':
+                        self.on_password()
+
+                    elif event == 'yut_playlist':
+                        self.on_yut_playlist(json_data)
+
+                    elif event == 'yut_play':
+                        self.on_yut_play(json_data)
+
+                    elif event == 'yut_pause':
+                        self.on_yut_pause(json_data)
+
+                    elif event == 'yut_stop':
+                        self.on_yut_stop(json_data)
+
+                    else:
+                        self.console_write(COLOR['bright_red'], 'Unknown command: %s %s' % (event, json_data))
+
+                    if config.DEBUG_MODE:
+                        self.console_write(COLOR['white'], data)
 
     # Chat Events.
     def on_ping(self):
@@ -267,8 +268,13 @@ class TinychatRTCClient(object):
         self.is_connected = False
         if code == 4:
             self.console_write(COLOR['bright_red'], 'You have been banned from the room.')
+        elif code == 5:
+            self.console_write(COLOR['bright_red'], 'Reconnect code? %s' % code)
+            self.reconnect()
         elif code == 6:
             self.console_write(COLOR['bright_red'], 'Double account sign in.')
+        elif code == 8:
+            self.console_write(COLOR['bright_red'], 'Timeout error? %s' % code)
         elif code == 12:
             self.console_write(COLOR['bright_red'], 'You have been kicked from the room.')
         else:
@@ -291,10 +297,6 @@ class TinychatRTCClient(object):
 
         # Not sure if this is the right place for this.
         if self.is_client_mod:
-            # when reconnect() have been implemented,
-            # the ban list should be cleared before requesting
-            # a new ban list to make sure the ban list is updated.
-            # self.users.clear_banlist()
             self.send_banlist_msg()
 
     def on_room_info(self, room_info):
@@ -539,6 +541,11 @@ class TinychatRTCClient(object):
             self.users.clear_banlist()
             self.send_banlist_msg()
 
+    def on_password(self):
+        """ Received when a room is password protected. """
+        self.console_write(COLOR['bright_red'], 'Password protected room. '
+                                                'Use /p to enter password. E.g. /p password123')
+
     def on_yut_playlist(self, playlist_data):  # TODO: Needs more work.
         """
         Received when a request for the playlist has been made.
@@ -732,6 +739,20 @@ class TinychatRTCClient(object):
         payload = {
             'tc': 'banlist',
             'req': self._req
+        }
+        self.send(payload)
+
+    def send_room_password_msg(self, password):
+        """
+        Send a room password message.
+
+        :param password: The room password.
+        :type password: str
+        """
+        payload = {
+            'tc': 'password',
+            'req': self._req,
+            'password': password
         }
         self.send(payload)
 

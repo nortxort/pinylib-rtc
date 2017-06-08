@@ -80,8 +80,9 @@ def main():
                 else:
                     for lurker in client.users.lurkers:
                         print (lurker.nick)
-            elif cmd == '/t':
-                client.reconnect()
+            elif cmd == '/p':
+                if len(msg_parts) >= 2:
+                    bot.send_room_password_msg(msg_parts[1])
         else:
             client.send_chat_msg(chat_msg)
 
