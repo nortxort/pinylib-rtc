@@ -576,12 +576,9 @@ class TinychatRTCClient(object):
         :param moder_data: Contains information about the allow request.
         :type moder_data: dict
         """
-        if moder_data['success']:
-            _user = self.users.search(moder_data['handle'])
-            if _user is not None and config.DEBUG_MODE:
-                self.console_write(COLOR['bright_yellow'], '%s:%s was allowed to broadcast.' % (_user.nick, _user.id))
-        else:
-            log.error('failed to allow user to broadcast: %s' % moder_data['reason'])
+        _user = self.users.search(moder_data['handle'])
+        if _user is not None and config.DEBUG_MODE:
+            self.console_write(COLOR['bright_yellow'], '%s:%s was allowed to broadcast.' % (_user.nick, _user.id))
 
     def on_stream_moder_close(self, moder_data):
         """
