@@ -17,7 +17,7 @@ import apis.tinychat
 from page import acc
 from util import file_handler, string_util
 
-__version__ = '1.0.3'
+__version__ = '1.0.4'
 
 CONFIG = config
 init(autoreset=True)
@@ -65,6 +65,7 @@ class TinychatRTCClient(object):
         self.is_client_owner = False
         self._init_time = time.time()
 
+        self.is_green_room = False
         self.is_connected = False
         self.users = user.Users()
         self.active_user = None
@@ -78,15 +79,14 @@ class TinychatRTCClient(object):
         :param color: the colorama color representation.
         :param message: str the message to write.
         """
-        msg_encoded = message.encode('ascii', 'ignore')
         if config.USE_24HOUR:
             ts = time.strftime('%H:%M:%S')
         else:
             ts = time.strftime('%I:%M:%S:%p')
         if config.CONSOLE_COLORS:
-            msg = COLOR['white'] + '[' + ts + '] ' + Style.RESET_ALL + color + msg_encoded
+            msg = COLOR['white'] + '[' + ts + '] ' + Style.RESET_ALL + color + message
         else:
-            msg = '[' + ts + '] ' + msg_encoded
+            msg = '[' + ts + '] ' + message
         try:
             print(msg)
         except UnicodeEncodeError as ue:
@@ -234,6 +234,15 @@ class TinychatRTCClient(object):
 
                     elif event == 'password':
                         self.on_password()
+
+                    elif event == 'pending_moderation':
+                        self.on_pending_moderation(json_data)
+                        
+                    elif event == 'stream_moder_allow':
+                        self.on_stream_moder_allow(json_data)
+
+                    elif event == 'stream_moder_close':
+                        self.on_stream_moder_close(json_data)
 
                     elif event == 'yut_playlist':
                         self.on_yut_playlist(json_data)
@@ -513,6 +522,8 @@ class TinychatRTCClient(object):
         """
         _user = self.users.search(uid)
         _user.is_broadcasting = True
+        if _user.is_waiting:
+            _user.is_waiting = False
         self.console_write(COLOR['yellow'], '%s:%s is broadcasting.' % (_user.nick, uid))
 
     def on_unpublish(self, uid):
@@ -537,14 +548,54 @@ class TinychatRTCClient(object):
         """
         self.console_write(COLOR['white'], msg)
         if 'banned' in msg and self.is_client_mod:
-            # clear the ban list to make sure the ban list is updated.
             self.users.clear_banlist()
             self.send_banlist_msg()
+        if 'green room enabled' in msg:
+            self.is_green_room = True
+        if 'green room disabled' in msg:
+            self.is_green_room = False
 
     def on_password(self):
         """ Received when a room is password protected. """
         self.console_write(COLOR['bright_red'], 'Password protected room. '
                                                 'Use /p to enter password. E.g. /p password123')
+
+    def on_pending_moderation(self, pending):
+        """ Received when a user is waiting in the green room. """
+        _user = self.users.search(pending['handle'])
+        if _user is not None:
+            _user.is_waiting = True
+            self.console_write(COLOR['bright_yellow'], '%s:%s is waiting in the green room.' % (_user.nick, _user.id))
+        else:
+            log.error('failed to find user info for green room pending user ID: %s' % pending['handle'])
+
+    def on_stream_moder_allow(self, moder_data):
+        """
+        Received when a user has been allowed by the client, to broadcast in a green room.
+
+        :param moder_data: Contains information about the allow request.
+        :type moder_data: dict
+        """
+        if moder_data['success']:
+            _user = self.users.search(moder_data['handle'])
+            if _user is not None and config.DEBUG_MODE:
+                self.console_write(COLOR['bright_yellow'], '%s:%s was allowed to broadcast.' % (_user.nick, _user.id))
+        else:
+            log.error('failed to allow user to broadcast: %s' % moder_data['reason'])
+
+    def on_stream_moder_close(self, moder_data):
+        """
+        Received when a user has their broadcast closed by the client.
+
+        :param moder_data: Contains information about the close request.
+        :type moder_data: dict
+        """
+        if moder_data['success']:
+            _user = self.users.search(moder_data['handle'])
+            if _user is not None and config.DEBUG_MODE:
+                self.console_write(COLOR['bright_yellow'], '%s:%s\'s broadcast was closed.' % (_user.nick, _user.id))
+        else:
+            log.error('failed to close a broadcast: %s' % moder_data['reason'])
 
     def on_yut_playlist(self, playlist_data):  # TODO: Needs more work.
         """
@@ -753,6 +804,34 @@ class TinychatRTCClient(object):
             'tc': 'password',
             'req': self._req,
             'password': password
+        }
+        self.send(payload)
+
+    def send_cam_approve_msg(self, uid):
+        """
+        Allow a user to broadcast in green room enabled room.
+
+        :param uid: The ID of the user.
+        :type uid: int
+        """
+        payload = {
+            'tc': 'stream_moder_allow',
+            'req': self._req,
+            'handle': uid
+        }
+        self.send(payload)
+
+    def send_close_user_msg(self, uid):
+        """
+        Close a users broadcast.
+
+        :param uid: The ID of the user.
+        :type uid: int
+        """
+        payload = {
+            'tc': 'stream_moder_close',
+            'req': self._req,
+            'handle': uid
         }
         self.send(payload)
 

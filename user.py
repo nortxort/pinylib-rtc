@@ -28,6 +28,7 @@ class User:
         self.is_mod = kwargs.get('mod', False)
         self.is_owner = kwargs.get('owner', False)
         self.is_broadcasting = False
+        self.is_waiting = False
         #
         self.user_level = 5
         self.join_time = time.time()
