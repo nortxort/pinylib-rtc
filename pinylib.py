@@ -17,7 +17,7 @@ import apis.tinychat
 from page import acc
 from util import file_handler, string_util
 
-__version__ = '1.0.4'
+__version__ = '1.0.5'
 
 CONFIG = config
 init(autoreset=True)
@@ -612,40 +612,48 @@ class TinychatRTCClient(object):
     def on_yut_play(self, yt_data):
         """
         Received when a youtube gets started or time searched.
-        
+
         This also gets received when the client starts a youtube, the information is 
         however ignored in that case.
-        
+
         :param yt_data: The event information contains info such as the ID (handle) of the user 
         starting/searching the youtube, the youtube ID, youtube time and so on.
         :type yt_data: dict
         """
-        if yt_data['handle'] != self.client_id:
-            _user = self.users.search(yt_data['handle'])
-            if yt_data['item']['offset'] == 0:
-                # the video was started from the start.
-                self.console_write(COLOR['bright_magenta'], '%s started youtube video (%s)' %
-                                   (_user.nick, yt_data['item']['id']))
-            elif yt_data['item']['offset'] > 0:
-                # the video was searched while still playing.
-                self.console_write(COLOR['bright_magenta'], '%s searched the youtube video to: %s' %
-                                   (_user.nick, int(round(yt_data['item']['offset']))))
+        user_nick = 'n/a'
+        if 'handle' in yt_data:
+            if yt_data['handle'] != self.client_id:
+                _user = self.users.search(yt_data['handle'])
+                user_nick = _user.nick
+
+        if yt_data['item']['offset'] == 0:
+            # the video was started from the start.
+            self.console_write(COLOR['bright_magenta'], '%s started youtube video (%s)' %
+                               (user_nick, yt_data['item']['id']))
+        elif yt_data['item']['offset'] > 0:
+            # the video was searched while still playing.
+            self.console_write(COLOR['bright_magenta'], '%s searched the youtube video to: %s' %
+                               (user_nick, int(round(yt_data['item']['offset']))))
 
     def on_yut_pause(self, yt_data):
         """
         Received when a youtube gets paused or searched while paused.
-        
+
         This also gets received when the client pauses or searches while paused, the information is 
         however ignored in that case.
-        
+
         :param yt_data: The event information contains info such as the ID (handle) of the user 
         pausing/searching the youtube, the youtube ID, youtube time and so on.
         :type yt_data: dict
         """
-        if yt_data['handle'] != self.client_id:
-            _user = self.users.search(yt_data['handle'])
-            self.console_write(COLOR['bright_magenta'], '%s paused the video at %s' %
-                               (_user.nick, int(round(yt_data['item']['offset']))))
+        user_nick = 'n/a'
+        if 'handle' in yt_data:
+            if yt_data['handle'] != self.client_id:
+                _user = self.users.search(yt_data['handle'])
+                user_nick = _user.nick
+
+        self.console_write(COLOR['bright_magenta'], '%s paused the video at %s' %
+                           (user_nick, int(round(yt_data['item']['offset']))))
 
     def on_yut_stop(self, yt_data):
         """
