@@ -17,7 +17,7 @@ import apis.tinychat
 from page import acc
 from util import file_handler, string_util
 
-__version__ = '1.0.5'
+__version__ = '1.0.6'
 
 CONFIG = config
 init(autoreset=True)
@@ -924,14 +924,16 @@ class TinychatRTCClient(object):
         }
         self.send(payload)
 
-    def send_yut_play(self, video_id, duration, offset=0):
+    def send_yut_play(self, video_id, duration, title, offset=0):
         """
         Start or search a youtube video.
-        
+
         :param video_id: The ID of the youtube video to start or search.
         :type video_id: str
         :param duration: The duration of the video in seconds.
         :type duration: int | float
+        :param title: The title of the youtube.
+        :type title: str
         :param offset: The offset seconds to start the video at in the case of doing a search.
         :type offset: int | float
         """
@@ -941,9 +943,16 @@ class TinychatRTCClient(object):
             'item': {
                 'id': video_id,
                 'duration': duration,
-                'offset': offset
+                'offset': offset,
+                'title': title
             }
         }
+
+        if offset != 0:
+            del payload['item']['title']
+            payload['item']['playlist'] = False
+            payload['item']['seek'] = True
+
         self.send(payload)
 
     def send_yut_pause(self, video_id, duration, offset=0):
