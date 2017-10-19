@@ -17,7 +17,7 @@ import apis.tinychat
 from page import acc
 from util import file_handler, string_util
 
-__version__ = '1.0.6'
+__version__ = '1.0.7'
 
 CONFIG = config
 init(autoreset=True)

@@ -21,6 +21,7 @@ class User:
         self.nick = kwargs.get('nick', '')
         self.account = kwargs.get('username', '')
         self.giftpoints = kwargs.get('giftpoints', 0)
+        self.featured = kwargs.get('featured', False)
         self.subscription = kwargs.get('subscription', 0)
         self.achievement_url = kwargs.get('achievement_url', '')
         self.avatar = kwargs.get('avatar', '')
