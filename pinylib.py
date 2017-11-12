@@ -1,14 +1,12 @@
 # -*- coding: utf-8 -*-
 # Pinylib RTC module, based on the POC by Notnola (https://github.com/notnola/TcRTC)
 
-
 import json
 import time
 import logging
 import traceback
 
 import websocket
-# import socket
 from colorama import init, Fore, Style
 
 import config
@@ -17,7 +15,7 @@ import apis.tinychat
 from page import acc
 from util import file_handler, string_util
 
-__version__ = '1.0.7'
+__version__ = '1.0.8'
 
 CONFIG = config
 init(autoreset=True)
@@ -534,8 +532,9 @@ class TinychatRTCClient(object):
         :type uid: int
         """
         _user = self.users.search(uid)
-        _user.is_broadcasting = False
-        self.console_write(COLOR['yellow'], '%s:%s stopped broadcasting.' % (_user.nick, uid))
+        if _user is not None:
+            _user.is_broadcasting = False
+            self.console_write(COLOR['yellow'], '%s:%s stopped broadcasting.' % (_user.nick, uid))
 
     def on_sysmsg(self, msg):
         """
