@@ -3,6 +3,7 @@ import time
 
 class BannedUser:
     """ Class representing a banned user. """
+
     def __init__(self, **kwargs):
         self.ban_id = kwargs.get('id', 0)
         self.nick = kwargs.get('nick', '')
@@ -11,11 +12,11 @@ class BannedUser:
         self.account = kwargs.get('username', '')
         self.banned_by = kwargs.get('moderator', '')
         self.reason = kwargs.get('reason', '')
-        self.ban_time = time.time()
 
 
 class User:
     """ Class representing a user. """
+
     def __init__(self, **kwargs):
         self.id = kwargs.get('handle')
         self.nick = kwargs.get('nick', '')
@@ -42,10 +43,11 @@ class User:
 
 class Users:
     """ Class for doing various user related operations. """
+
     def __init__(self):
         """
         Initialize the Users class.
-        
+
         Creating a dictionary for users and one for banned users.
         """
         self._users = dict()
@@ -55,7 +57,7 @@ class Users:
     def all(self):
         """
         Returns a dictionary of all the users.
-        
+
         :return: A dictionary where the key is the user ID and the value is User.
         :rtype: dict
         """
@@ -65,7 +67,7 @@ class Users:
     def mods(self):
         """
         Returns a list of all the moderators.
-        
+
         :return: A list of moderator User.
         :rtype: list
         """
@@ -79,7 +81,7 @@ class Users:
     def signed_in(self):
         """
         Returns a list of all signed in users.
-        
+
         :return: A list of all the signed in User
         :rtype: list
         """
@@ -93,7 +95,7 @@ class Users:
     def lurkers(self):
         """
         Returns a list of the lurkers.
-        
+
         :return: A list of lurkers User.
         :rtype: list
         """
@@ -107,7 +109,7 @@ class Users:
     def norms(self):
         """
         Returns a list of all normal users, e.g users that are not moderators or lurkers.
-        
+
         :return: A list of all normal User.
         :rtype: list
         """
@@ -121,7 +123,7 @@ class Users:
     def broadcaster(self):
         """
         Returns a list of all broadcasting users.
-        
+
         :return: A list of all the broadcasting User.
         :rtype: list
         """
@@ -138,7 +140,7 @@ class Users:
     def add(self, user_info):
         """
         Add a user to the user dictionary.
-        
+
         :param user_info: User information data.
         :type user_info: dict
         :return: The user as User.
@@ -151,7 +153,7 @@ class Users:
     def delete(self, handle_id):
         """
         Delete a user from the user dictionary.
-        
+
         :param handle_id: The id (handle) of the user to delete.
         :type handle_id: int
         :return: The User of the deleted user or None if the ID was not found.
@@ -166,10 +168,10 @@ class Users:
     def search(self, handle_id):
         """
         Search the user dictionary by ID.
-        
+
         This is the primary search method, since the user ID (handle) is
         present in all(?) user related events.
-        
+
         :param handle_id: The ID of the user to find.
         :type handle_id: int
         :return: The User or None if not found.
@@ -182,7 +184,7 @@ class Users:
     def search_by_nick(self, nick):
         """
         Search the user dictionary by nick name.
-        
+
         :param nick: The nick name of the user to search for.
         :type nick: str
         :return: The User or None if not found.
@@ -196,7 +198,7 @@ class Users:
     def search_containing(self, contains):
         """
         Search the user dictionary for nick names matching the search string.
-        
+
         :param contains: The search string to search for in the nick names.
         :type contains: str
         :return: A list of User matching the search string.
@@ -208,13 +210,32 @@ class Users:
                 _users_containing.append(self.all[user])
         return _users_containing
 
-    # Ban related. This is still a work in progress.
-    # It has not been fully implemented in the code.
+    # Banlist related.
+    @staticmethod
+    def _find_most_recent(user_obj_list):
+        """
+        Find the most recent banned user in a list of BannedUser objects.
+
+        :param user_obj_list: A list containing BannedUser objects.
+        :type user_obj_list: list
+        :return: A BannedUser object or None.
+        :rtype: BannedUser | None
+        """
+        _highest = 0
+        _user_obj = None
+
+        for user_obj in user_obj_list:
+            if user_obj.ban_id > _highest:
+                _highest = user_obj.ban_id
+                _user_obj = user_obj
+
+        return _user_obj
+
     @property
     def banlist(self):
         """
         Returns a dictionary of all banned users.
-        
+
         :return: A dictionary where the key is the ban ID and the value is BannedUser.
         :rtype: dict
         """
@@ -237,8 +258,8 @@ class Users:
     def banned_accounts(self):
         """
         Returns a list of BannedUser account name.
-        
-        :return: A list of BannedUser containing account name. 
+
+        :return: A list of BannedUser containing account name.
         :rtype: list
         """
         _accounts = []
@@ -247,10 +268,20 @@ class Users:
                 _accounts.append(self.banlist[ban_id])
         return _accounts
 
+    @property
+    def last_banned(self):
+        """
+        Returns the last BannedUser object.
+
+        :return: The last BannedUser object from the banlist.
+        :rtype: BannedUser | None
+        """
+        return self._find_most_recent(self.banned_users)
+
     def add_banned_user(self, ban_info):
         """
         Add a user to the banned user dictionary.
-        
+
         :param ban_info: The banned user's ban information.
         :type ban_info: dict
         :return: A BannedUser.
@@ -265,7 +296,7 @@ class Users:
     def delete_banned_user(self, ban_info):  # TODO: Maybe change this to delete by ban id only.
         """
         Delete a banned user from the banned user dictionary.
-        
+
         :param ban_info: The banned user's ban information.
         :type ban_info: dict
         :return: The BannedUser or None if not in the dictionary.
@@ -284,7 +315,7 @@ class Users:
     def search_banlist(self, ban_id):
         """
         Search the banlist dictionary by ban ID.
-        
+
         :param ban_id: The ban ID to search for.
         :type ban_id: int
         :return: A BannedUser or None if not found.
@@ -293,6 +324,28 @@ class Users:
         if ban_id in self.banlist:
             return self.banlist[ban_id]
         return None
+
+    def search_banlist_by_nick(self, user_name):
+        """
+        Search the banlist for a username.
+
+        If more than one username match is found,
+        then the most recent BannedUser object will be returned.
+
+        :param user_name: The user name of the banned user to search for.
+        :type user_name: str
+        :return: A BannedUser object or None if no match was found in the banlist.
+        :rtype: BannedUser | None
+        """
+        _candidates = []
+        for ban_id in self.banlist:
+            if self.banlist[ban_id].nick == user_name:
+                _candidates.append(self.banlist[ban_id])
+
+        if len(_candidates) == 0:
+            return None
+
+        return self._find_most_recent(_candidates)
 
     def search_banlist_containing(self, contains):
         """
@@ -312,7 +365,7 @@ class Users:
     def search_banlist_by_req_id(self, req_id):
         """
         Search the banned user dictionary by req ID.
-        
+
         :param req_id: The req ID to search for.
         :type req_id: int
         :return: A BannedUser matching the req ID or None if not found.

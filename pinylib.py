@@ -15,7 +15,7 @@ import apis.tinychat
 from page import acc
 from util import file_handler, string_util
 
-__version__ = '1.0.8'
+__version__ = '1.0.9'
 
 CONFIG = config
 init(autoreset=True)
@@ -561,6 +561,9 @@ class TinychatRTCClient(object):
 
     def on_pending_moderation(self, pending):
         """ Received when a user is waiting in the green room. """
+        if not self.is_green_room:
+            self.is_green_room = True
+            
         _user = self.users.search(pending['handle'])
         if _user is not None:
             _user.is_waiting = True
