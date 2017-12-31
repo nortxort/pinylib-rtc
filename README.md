@@ -1,5 +1,7 @@
 ## Pinylib-RTC
 
+**Officially unmaintained 1/2018**
+
 WebRTC module for tinychat chat rooms.
 
 This is the WebRTC version of pinylib. The structure and the coding style is the same as the original pinylib. Since tinychat is still in beta stage, this version should also be seen as a sort of beta version.

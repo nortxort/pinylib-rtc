@@ -15,7 +15,7 @@ import apis.tinychat
 from page import acc
 from util import file_handler, string_util
 
-__version__ = '1.0.9'
+__version__ = '1.0.10'
 
 CONFIG = config
 init(autoreset=True)
@@ -241,6 +241,9 @@ class TinychatRTCClient(object):
 
                     elif event == 'stream_moder_close':
                         self.on_stream_moder_close(json_data)
+
+                    elif event == 'captcha':
+                        self.on_captcha(json_data['key'])
 
                     elif event == 'yut_playlist':
                         self.on_yut_playlist(json_data)
@@ -596,6 +599,13 @@ class TinychatRTCClient(object):
         else:
             log.error('failed to close a broadcast: %s' % moder_data['reason'])
 
+    def on_captcha(self, key):
+        """
+
+        """
+        log.debug('captcha key: %s' % key)
+        self.console_write(COLOR['bright_red'], 'Captcha required!')
+
     def on_yut_playlist(self, playlist_data):  # TODO: Needs more work.
         """
         Received when a request for the playlist has been made.
@@ -839,6 +849,20 @@ class TinychatRTCClient(object):
             'tc': 'stream_moder_close',
             'req': self._req,
             'handle': uid
+        }
+        self.send(payload)
+
+    def send_captcha(self, token):
+        """
+        Send the captcha token.
+
+        :param token: The captcha response token.
+        :type token: str
+        """
+        payload = {
+            'tc': 'captcha',
+            'req': self._req,
+            'token': token
         }
         self.send(payload)
 
