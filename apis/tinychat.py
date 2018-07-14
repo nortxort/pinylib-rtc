@@ -5,7 +5,7 @@ import util.web
 def rtc_version(room):
     """
     Parse the current tinychat RTC version.
-    
+
     :param room: This could be a static room name, since we just need the html of any room.
     :type room: str
     :return: The current tinychat rtc version, or None on parse failure.
@@ -20,74 +20,46 @@ def rtc_version(room):
 
 
 def get_connect_token(room):
-    """ 
-    Get the connect token needed for connecting to the WebRTC application.
+    """
+    Get the connect token and the wss server endpoint.
 
-    :param room: The room to get the token for.
+    :param room: The room to get the details for.
     :type room: str
-    :return: The connect token, or None on failure to fetch token.
-    :rtype: str | None
+    :return: The token and the wss endpoint.
+    :rtype: dict | None
     """
     _url = 'https://tinychat.com/api/v1.0/room/token/{0}'.format(room)
 
-    response = util.web.http_get(url=_url, json=True)
+    response = util.web.http_get(_url, json=True)
     if response['json'] is not None:
-        return response['json']['result']
+        return {
+            'token': response['json']['result'],
+            'endpoint': response['json']['endpoint']
+        }
+
+    return None
 
 
-def user_info(tc_account):
-    """ 
-    Finds info for a given tinychat account name.
-
-    :param tc_account: str the account name.
-    :return: dict {'username', 'tinychat_id', 'last_active', 'name', 'location', 'biography'} or None on error.
+def user_info(account):
     """
-    url = 'https://tinychat.com/api/tcinfo?username=%s' % tc_account
-    response = util.web.http_get(url=url, json=True)
-    if response['json'] is not None:
-        if 'error' not in response['json']:
-            username = response['json']['username']
-            user_id = response['json']['id']
-            last_active = time.ctime(int(response['json']['last_active']))
-            name = response['json']['name']
-            location = response['json']['location']
-            biography = response['json']['biography']
+    Get the user information related to the account name.
 
-            return {
-                'username': username,
-                'tinychat_id': user_id,
-                'last_active': last_active,
-                'name': name,
-                'location': location,
-                'biography': biography
-            }
-        else:
-            return None
-
-
-def spy_info(room):
-    """ 
-    Finds info for a given room name.
-
-    The info shows how many mods, broadcasters and total users(list)
-
-    :param room: str the room name to get spy info for.
-    :return: dict{'mod_count', 'broadcaster_count', 'total_count', list('users')} or {'error'}.
+    :param account: The tinychat account name.
+    :type account: str
+    :return: A dictionary containing info about the user account.
+    :rtype: dict | None
     """
-    url = 'https://api.tinychat.com/%s.json' % room
+    url = 'https://tinychat.com/api/v1.0/user/profile?username={0}&'.format(account)
     response = util.web.http_get(url, json=True)
+
     if response['json'] is not None:
-        if 'error' not in response['json']:
-            mod_count = str(response['json']['mod_count'])
-            broadcaster_count = str(response['json']['broadcaster_count'])
-            total_count = response['json']['total_count']
-            if total_count > 0:
-                users = response['json']['names']
-                return {
-                    'mod_count': mod_count,
-                    'broadcaster_count': broadcaster_count,
-                    'total_count': total_count,
-                    'users': users
-                }
-        else:
-            return {'error': response['json']['error']}
+        if response['json']['result'] == 'success':
+            return {
+                'biography': response['json']['biography'],
+                'gender': response['json']['gender'],
+                'location': response['json']['location'],
+                'role': response['json']['role'],
+                'age': response['json']['age']
+            }
+
+    return None

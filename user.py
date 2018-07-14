@@ -35,8 +35,11 @@ class User:
         #
         self.user_level = 5
         self.join_time = time.time()
-        self.tinychat_id = None
-        self.last_login = None
+        self.location = None
+        self.age = None
+        self.gender = None
+        self.role = None
+        self.biography = None
         self.last_msg = None
         self.msg_time = 0.0
 
