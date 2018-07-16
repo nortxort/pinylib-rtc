@@ -32,10 +32,10 @@ class Privacy:
         :return: True if it is a valid account, False if invalid account.
         :rtype: bool
         """
-        url = 'https://tinychat.com/api/tcinfo?username=%s' % account_name
+        url = 'https://tinychat.com/api/v1.0/user/profile?username={0}&'.format(account_name)
         response = util.web.http_get(url=url, json=True)
         if response['json'] is not None:
-            if 'error' not in response['json']:
+            if response['json']['result'] == 'success':
                 return True
             return False
 
