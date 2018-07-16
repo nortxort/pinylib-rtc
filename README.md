@@ -76,5 +76,8 @@ ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEAL
 *Thanks to the following people who in some way or another, has helped with this project*
 
 * [notnola](https://github.com/notnola)
+* [Technetium](https://github.com/Technetium1)
+* [Aida](https://github.com/Autotonic)
+* [Robert Moore](https://github.com/moorer2k)
 
 
